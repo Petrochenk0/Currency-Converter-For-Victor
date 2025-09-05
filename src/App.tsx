@@ -27,40 +27,31 @@ const App = () => {
     to: string;
     amount: string;
   }>('currency-converter-state', {
-    from: fromCurrency.code,
-    to: toCurrency.code,
+    from: CURRENCY_LIST[0].code,
+    to: CURRENCY_LIST[1].code,
     amount: '1',
   });
 
-  // Применяем сохранённое состояние при загрузке
+  // Применяем сохранённое состояние один раз при монтировании
   useEffect(() => {
-    const newFrom = CURRENCY_LIST.find((c) => c.code === savedState.from) || CURRENCY_LIST[0];
-    const newTo = CURRENCY_LIST.find((c) => c.code === savedState.to) || CURRENCY_LIST[1];
+    const from = CURRENCY_LIST.find((c) => c.code === savedState.from) || CURRENCY_LIST[0];
+    const to = CURRENCY_LIST.find((c) => c.code === savedState.to) || CURRENCY_LIST[1];
 
-    if (fromCurrency.code !== newFrom.code) {
-      setFromCurrency(newFrom);
-    }
-    if (toCurrency.code !== newTo.code) {
-      setToCurrency(newTo);
-    }
-    if (amount !== savedState.amount) {
-      setAmount(savedState.amount);
-    }
-  }, [savedState, fromCurrency.code, toCurrency.code, amount]);
+    setFromCurrency(from);
+    setToCurrency(to);
+    setAmount(savedState.amount);
+  }, []); // Выполняется один раз
 
-  // Сохраняем текущее состояние в localStorage
+  // Сохраняем состояние при изменении
   useEffect(() => {
-    const newState = { from: fromCurrency.code, to: toCurrency.code, amount };
-    if (
-      savedState.from !== newState.from ||
-      savedState.to !== newState.to ||
-      savedState.amount !== newState.amount
-    ) {
-      setSavedState(newState);
-    }
-  }, [fromCurrency.code, toCurrency.code, amount, savedState, setSavedState]);
+    setSavedState({
+      from: fromCurrency.code,
+      to: toCurrency.code,
+      amount,
+    });
+  }, [fromCurrency.code, toCurrency.code, amount, setSavedState]);
 
-  // Загрузка курсов с API
+  // Загрузка курсов
   const loadRates = async () => {
     if (!isOnline) return;
     setIsLoading(true);
@@ -68,9 +59,10 @@ const App = () => {
     try {
       const data = await fetchExchangeRates();
       setRates(data.rates);
-      setLastUpdated(data.date ? new Date(data.date) : new Date());
+      setLastUpdated(new Date(data.date));
     } catch (err) {
       setError('Failed to fetch exchange rates');
+      // Не очищаем rates — оставляем кэш
     } finally {
       setIsLoading(false);
     }
@@ -84,20 +76,20 @@ const App = () => {
     }
   }, [isOnline]);
 
-  // Загрузка кэша при старте
+  // Загрузка кэша при старте (один раз)
   useEffect(() => {
     const cachedRates = localStorage.getItem('exchangeRates');
     const cachedTime = localStorage.getItem('exchangeRatesTime');
-    const now = new Date();
 
     if (cachedRates && cachedTime) {
-      const timeDiff = now.getTime() - new Date(cachedTime).getTime();
+      const timeDiff = Date.now() - new Date(cachedTime).getTime();
       if (timeDiff < 5 * 60 * 1000) {
         setRates(JSON.parse(cachedRates));
         setLastUpdated(new Date(cachedTime));
       }
     }
 
+    // Загружаем свежие курсы, если онлайн
     if (isOnline) {
       loadRates();
     }
@@ -113,20 +105,20 @@ const App = () => {
 
   // Расчёт курса
   const calculateRate = () => {
-    if (!rates[fromCurrency.code] || !rates[toCurrency.code]) return null;
-    return rates[toCurrency.code] / rates[fromCurrency.code];
+    const fromRate = rates[fromCurrency.code];
+    const toRate = rates[toCurrency.code];
+    if (fromRate === undefined || toRate === undefined) return null;
+    return toRate / fromRate;
   };
 
   const rate = calculateRate();
   const inverseRate = rate ? 1 / rate : null;
 
-  // Обмен валютами
   const handleSwap = () => {
     setFromCurrency(toCurrency);
     setToCurrency(fromCurrency);
   };
 
-  // Ручное обновление
   const refreshRates = () => {
     if (refreshing) return;
     setRefreshing(true);
@@ -142,7 +134,7 @@ const App = () => {
           <p className="text-gray-500">Get real-time exchange rates</p>
         </div>
 
-        {/* Индикатор сети */}
+        {/* Статус сети */}
         <div className="flex justify-center items-center gap-4 mb-6 text-sm">
           <div className={`flex items-center ${isOnline ? 'text-green-600' : 'text-red-600'}`}>
             <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -156,7 +148,7 @@ const App = () => {
             {isOnline ? 'Online' : 'Offline'}
           </div>
           <div className="text-gray-500">
-            Last updated: {lastUpdated?.toLocaleString() ?? 'N/A'}{' '}
+            Last updated: {lastUpdated?.toLocaleString() ?? 'N/A'}
           </div>
           {isOnline && (
             <button
@@ -223,7 +215,7 @@ const App = () => {
             amount={parseAmount(amount)}
             from={fromCurrency}
             to={toCurrency}
-            rate={calculateRate()}
+            rate={rate}
             inverseRate={inverseRate}
             isLoading={isLoading}
             error={error}

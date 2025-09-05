@@ -6,7 +6,7 @@ import { ModalCurrencyPicker } from './ModalCurrencyPicker';
 interface Props {
   selectedCurrency: Currency;
   onSelect: (currency: Currency) => void;
-  label: string; // ← используется
+  label: string;
 }
 
 export const CurrencySelector: React.FC<Props> = ({ selectedCurrency, onSelect, label }) => {

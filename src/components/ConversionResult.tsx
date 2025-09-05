@@ -20,6 +20,7 @@ export const ConversionResult: React.FC<Props> = ({
   isLoading,
   error,
 }) => {
+  // Предотвращаем NaN и мигание
   const result = rate !== null ? amount * rate : 0;
 
   return (
@@ -29,28 +30,30 @@ export const ConversionResult: React.FC<Props> = ({
       {isLoading ? (
         <div className="animate-pulse">
           <div className="h-8 bg-gray-200 rounded mb-2"></div>
-          <div className="h-4 bg-gray-200 rounded"></div>
+          <div className="h-4 bg-gray-200 rounded w-3/4"></div>
         </div>
       ) : error ? (
         <p className="text-red-500">{error}</p>
+      ) : rate === null ? (
+        <p className="text-gray-500">Exchange rate not available</p>
       ) : (
         <>
-          <div className="text-2xl font-bold mb-2">{formatCurrency(result, to)}</div>
+          <div className="text-2xl font-bold text-gray-900 mb-2">{formatCurrency(result, to)}</div>
           <div className="text-sm text-gray-500 mb-6">
-            {amount} {from.code} →
+            {formatCurrency(amount, from)} → {formatCurrency(result, to)}
           </div>
 
-          <div className="space-y-2 text-sm">
+          <div className="space-y-2 text-sm text-gray-700">
             <div>
               <span className="font-medium">Exchange Rate:</span>{' '}
               <span>
-                1 {from.code} = {rate?.toFixed(6)} {to.code}
+                1 {from.code} = {rate.toFixed(6)} {to.code}
               </span>
             </div>
             <div>
               <span className="font-medium">Inverse Rate:</span>{' '}
               <span>
-                1 {to.code} = {inverseRate?.toFixed(6)} {from.code}
+                1 {to.code} = {inverseRate?.toFixed(6) || '—'} {from.code}
               </span>
             </div>
           </div>
