@@ -1,8 +1,9 @@
+// src/App.tsx
 import { useState, useEffect } from 'react';
 import type { Currency } from './types';
 import { CURRENCY_LIST } from './utils/currencyList';
 import { useOnlineStatus } from './hooks/useOnlineStatus';
-import { useLocalStorage } from './hooks/useLokalStorage';
+import { useLocalStorage } from './hooks/useLocalStorage';
 import { fetchExchangeRates } from './services/exchangeRateService';
 import { parseAmount } from './utils/formatCurrency';
 import { InputWithDebounce } from './components/InputWithDebounce';
@@ -21,19 +22,18 @@ const App = () => {
 
   const isOnline = useOnlineStatus();
 
-  // Загрузка из localStorage
-  const [savedState, setSavedState] = useLocalStorage<{ from: string; to: string; amount: string }>(
-    'currency-converter-state',
-    { from: fromCurrency.code, to: toCurrency.code, amount: '1' },
-  );
+  // Загрузка состояния из localStorage
+  const [savedState, setSavedState] = useLocalStorage<{
+    from: string;
+    to: string;
+    amount: string;
+  }>('currency-converter-state', {
+    from: fromCurrency.code,
+    to: toCurrency.code,
+    amount: '1',
+  });
 
-  useEffect(() => {
-    setFromCurrency(CURRENCY_LIST.find((c) => c.code === savedState.from) || CURRENCY_LIST[0]);
-    setToCurrency(CURRENCY_LIST.find((c) => c.code === savedState.to) || CURRENCY_LIST[1]);
-    setAmount(savedState.amount);
-  }, [savedState]);
-
-  // Обновление состояния при изменении валют
+  // Применяем сохранённое состояние при загрузке
   useEffect(() => {
     const newFrom = CURRENCY_LIST.find((c) => c.code === savedState.from) || CURRENCY_LIST[0];
     const newTo = CURRENCY_LIST.find((c) => c.code === savedState.to) || CURRENCY_LIST[1];
@@ -47,9 +47,21 @@ const App = () => {
     if (amount !== savedState.amount) {
       setAmount(savedState.amount);
     }
-  }, [savedState]);
+  }, [savedState, fromCurrency.code, toCurrency.code, amount]);
 
-  // Получение курсов
+  // Сохраняем текущее состояние в localStorage
+  useEffect(() => {
+    const newState = { from: fromCurrency.code, to: toCurrency.code, amount };
+    if (
+      savedState.from !== newState.from ||
+      savedState.to !== newState.to ||
+      savedState.amount !== newState.amount
+    ) {
+      setSavedState(newState);
+    }
+  }, [fromCurrency.code, toCurrency.code, amount, savedState, setSavedState]);
+
+  // Загрузка курсов с API
   const loadRates = async () => {
     if (!isOnline) return;
     setIsLoading(true);
@@ -57,7 +69,7 @@ const App = () => {
     try {
       const data = await fetchExchangeRates();
       setRates(data.rates);
-      setLastUpdated(new Date(data.date));
+      setLastUpdated(data.date ? new Date(data.date) : new Date()); // ✅ Защита от null
     } catch (err) {
       setError('Failed to fetch exchange rates');
     } finally {
@@ -65,7 +77,7 @@ const App = () => {
     }
   };
 
-  // Автоматическое обновление каждые 5 минут
+  // Автообновление каждые 5 минут
   useEffect(() => {
     if (isOnline) {
       const interval = setInterval(loadRates, 5 * 60 * 1000);
@@ -103,18 +115,18 @@ const App = () => {
   // Расчёт курса
   const calculateRate = () => {
     if (!rates[fromCurrency.code] || !rates[toCurrency.code]) return null;
-
-    const rate = rates[toCurrency.code] / rates[fromCurrency.code];
-    return rate;
+    return rates[toCurrency.code] / rates[fromCurrency.code];
   };
 
   const inverseRate = calculateRate() ? 1 / calculateRate() : null;
 
+  // Обмен валютами
   const handleSwap = () => {
     setFromCurrency(toCurrency);
     setToCurrency(fromCurrency);
   };
 
+  // Ручное обновление
   const refreshRates = () => {
     if (refreshing) return;
     setRefreshing(true);
@@ -126,11 +138,11 @@ const App = () => {
     <div className="min-h-screen bg-gray-50 flex flex-col items-center py-8 px-4">
       <div className="w-full max-w-4xl mx-auto">
         <div className="text-center mb-6">
-          <h1 className="text-2xl font-bold">Currency converter</h1>
+          <h1 className="text-2xl font-bold">Currency Converter</h1>
           <p className="text-gray-500">Get real-time exchange rates</p>
         </div>
 
-        {/* Status Bar */}
+        {/* Индикатор сети */}
         <div className="flex justify-center items-center gap-4 mb-6 text-sm">
           <div className={`flex items-center ${isOnline ? 'text-green-600' : 'text-red-600'}`}>
             <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
