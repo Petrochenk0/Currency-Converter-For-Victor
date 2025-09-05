@@ -19,4 +19,6 @@ A simple, offline-capable currency converter built with React + TypeScript.
 ```bash
 git clone https://github.com/yourusername/currency-converter.git
 cd currency-converter
+npm install
+npm run dev
 ```
