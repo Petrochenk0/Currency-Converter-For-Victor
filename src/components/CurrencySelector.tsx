@@ -6,7 +6,7 @@ import { ModalCurrencyPicker } from './ModalCurrencyPicker';
 interface Props {
   selectedCurrency: Currency;
   onSelect: (currency: Currency) => void;
-  label: string;
+  label: string; // ← используется
 }
 
 export const CurrencySelector: React.FC<Props> = ({ selectedCurrency, onSelect, label }) => {
@@ -19,6 +19,8 @@ export const CurrencySelector: React.FC<Props> = ({ selectedCurrency, onSelect, 
 
   return (
     <div className="relative">
+      {/* Используем label */}
+      <label className="block text-sm font-medium mb-2">{label}</label>
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="flex items-center justify-between w-full p-3 bg-white border border-gray-300 rounded-lg shadow-sm hover:shadow-md transition-shadow">

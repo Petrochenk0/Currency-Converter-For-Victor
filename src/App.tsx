@@ -1,4 +1,3 @@
-// src/App.tsx
 import { useState, useEffect } from 'react';
 import type { Currency } from './types';
 import { CURRENCY_LIST } from './utils/currencyList';
@@ -69,7 +68,7 @@ const App = () => {
     try {
       const data = await fetchExchangeRates();
       setRates(data.rates);
-      setLastUpdated(data.date ? new Date(data.date) : new Date()); // ✅ Защита от null
+      setLastUpdated(data.date ? new Date(data.date) : new Date());
     } catch (err) {
       setError('Failed to fetch exchange rates');
     } finally {
@@ -118,7 +117,8 @@ const App = () => {
     return rates[toCurrency.code] / rates[fromCurrency.code];
   };
 
-  const inverseRate = calculateRate() ? 1 / calculateRate() : null;
+  const rate = calculateRate();
+  const inverseRate = rate ? 1 / rate : null;
 
   // Обмен валютами
   const handleSwap = () => {
@@ -156,7 +156,7 @@ const App = () => {
             {isOnline ? 'Online' : 'Offline'}
           </div>
           <div className="text-gray-500">
-            Last updated: {lastUpdated ? lastUpdated.toLocaleString() : 'N/A'}
+            Last updated: {lastUpdated?.toLocaleString() ?? 'N/A'}{' '}
           </div>
           {isOnline && (
             <button
@@ -232,7 +232,7 @@ const App = () => {
 
         {!isOnline && lastUpdated && (
           <div className="mt-4 text-sm text-gray-500 text-center">
-            Using cached rates from {lastUpdated.toLocaleString()}
+            Using cached rates from {lastUpdated?.toLocaleString() ?? 'N/A'}
           </div>
         )}
       </div>
